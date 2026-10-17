@@ -1,0 +1,56 @@
+[package]
+name = "mcpg-plugin-watch-servicebus"
+version = "0.1.0-alpha.1"
+license = "Apache-2.0"
+edition = "2024"
+description = "Azure Service Bus watch_strategy plugin for MCPG (dev.mcpg.watch.servicebus) — each message on a queue or a topic subscription as an MCP Event, completed only once the gateway has stored it."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+# Gate declare_plugin! behind these — an ungated export risks a duplicate
+# mcpg_plugin_register symbol if this crate ever links into the workspace
+# alongside another exporter.
+cdylib-export = []
+static-firstparty = []
+# Gates the suite against the Service Bus emulator or a namespace in Azure
+# (see the README), so plain `cargo test` stays cheap. Run: `cargo test -p
+# mcpg-plugin-watch-servicebus --features integration-tests` with
+# SERVICEBUS_TEST_CONNECTION_STRING set.
+integration-tests = []
+
+[dependencies]
+mcpg-plugin-protocol = { git = "https://github.com/mcpg-dev/mcpg-plugin-protocol", tag = "v0.1.0-beta.40", version = "=0.1.0-beta.40" }
+mcpg-plugin-sdk = { git = "https://github.com/mcpg-dev/mcpg-plugin-sdk", tag = "v0.1.0-beta.41", version = "=0.1.0-beta.41", features = ["static-firstparty"] }
+# Entra ID tokens; its default HTTP client is reqwest on rustls.
+azure_core = "1"
+azure_identity = "1"
+base64 = "0.23"
+# AMQP 1.0 on rustls with the webpki roots; deny.toml bans native-tls.
+fe2o3-amqp = { version = "0.18", features = ["rustls"] }
+fe2o3-amqp-cbs = "0.18"
+fe2o3-amqp-management = "0.18"
+fe2o3-amqp-types = "0.18"
+hmac = "0.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time"] }
+# The TLS connector is built here with its crypto provider named, since a
+# build with both rustls providers has no default.
+tokio-rustls = "0.26"
+tracing = "0.1"
+url = "2"
+uuid = "1"
+webpki-roots = "1"
+
+[dev-dependencies]
+# The HTTP client that stands in for Entra ID and IMDS.
+async-trait = "0.1"
+# The federated token file of the workload identity tests.
+tempfile = "3"
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tracing-subscriber = "0.3"
+

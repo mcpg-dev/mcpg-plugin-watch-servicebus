@@ -1,0 +1,61 @@
+schema: mcpg.dev/plugin/v1
+id: dev.mcpg.watch.servicebus
+name: Azure Service Bus Watch Strategy
+license: Apache-2.0
+description: |
+  Consumes an Azure Service Bus queue or topic subscription, or the
+  dead-letter queue of either, as MCP Events. The `servicebus_entity`
+  strategy receives over AMQP 1.0 in peek-lock mode; each message is one
+  `servicebus.message` event, completed once the gateway has stored it and
+  abandoned when the gateway has not done so in `ack_timeout_ms`, its lock
+  renewed in between. Delivery is at-least-once and the broker's sequence
+  number is the event id, so the gateway takes a redelivered message once.
+  Credentials are a connection string, a shared access key or signature, or
+  Entra ID (client secret, workload identity, managed identity); the
+  Service Bus emulator works through its connection string.
+class: watch_strategy
+runtime: native-cdylib-v1
+protocol_version: "1.0"
+required_capabilities: [network_outbound]
+# MCP Events: Service Bus keeps what is not completed, so the watch needs no
+# stored position.
+watch_strategies:
+  - kind: servicebus_entity
+    placement: single_owner
+    resume: false
+    event_types:
+      - name: servicebus.message
+        description: One message received from the watched entity. The eventId is the broker's sequence number.
+        payload_schema:
+          type: object
+          required: [namespace, entity, body, bodyEncoding, applicationProperties]
+          properties:
+            namespace: { type: string, description: The namespace host. }
+            entity: { type: string, description: "The entity path read: a queue, topic/Subscriptions/name, with /$DeadLetterQueue for a dead-letter queue." }
+            sequenceNumber: { type: integer, description: Unique in the entity and kept across redeliveries. }
+            messageId: { type: string }
+            body:
+              description: The message body, read as bodyEncoding says; null when bodyTruncated.
+            bodyEncoding:
+              description: How body holds the message body - its JSON, its text or base64 of its bytes. An AMQP value body other than text or binary is its JSON.
+              enum: [json, text, base64, null]
+            bodyTruncated: { type: boolean, description: The body was larger than max_body_bytes and is left out. }
+            bodySize: { type: integer, description: The size of a body left out, in bytes. }
+            subject: { type: string }
+            contentType: { type: string }
+            correlationId: { type: string }
+            to: { type: string }
+            replyTo: { type: string }
+            sessionId: { type: string }
+            replyToSessionId: { type: string }
+            partitionKey: { type: string }
+            enqueuedAt: { type: string, description: When the broker took the message, RFC 3339; also the event time. }
+            scheduledEnqueueAt: { type: string }
+            expiresAt: { type: string }
+            deliveryCount: { type: integer, description: Which delivery of the message this is, from 1. }
+            deadLetterReason: { type: string }
+            deadLetterErrorDescription: { type: string }
+            deadLetterSource: { type: string, description: The entity a forwarded message was dead-lettered from. }
+            applicationProperties:
+              type: object
+              description: The message's application properties, each by name; timestamps as RFC 3339, binary as base64.
