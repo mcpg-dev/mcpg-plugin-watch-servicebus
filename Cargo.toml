@@ -1,6 +1,6 @@
 [package]
 name = "mcpg-plugin-watch-servicebus"
-version = "0.1.0-rc.5"
+version = "0.1.0"
 license = "Apache-2.0"
 edition = "2024"
 description = "Azure Service Bus watch_strategy plugin for MCPG (dev.mcpg.watch.servicebus) — each message on a queue or a topic subscription as an MCP Event, completed only once the gateway has stored it."
